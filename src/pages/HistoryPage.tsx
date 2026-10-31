@@ -54,6 +54,15 @@ export default function HistoryPage() {
   const [sessions, setSessions] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [expandedSessions, setExpandedSessions] = useState<string[]>([]);
+
+  function toggleSummary(id: string) {
+    setExpandedSessions((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id]
+    );
+  }
 
   useEffect(() => {
     async function loadHistory() {
@@ -220,10 +229,22 @@ export default function HistoryPage() {
               session.questionCount > 0 &&
               session.answeredCount === session.questionCount;
 
+            const isExpanded = expandedSessions.includes(session.id);
+
             return (
               <div
                 key={session.id}
-                className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+                onClick={() => toggleSummary(session.id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    toggleSummary(session.id);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-expanded={isExpanded}
+                className="cursor-pointer rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
                 <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                   <div>
@@ -249,7 +270,11 @@ export default function HistoryPage() {
                   </span>
                 </div>
 
-                {completed && (
+                <p className="mt-4 text-sm font-semibold text-blue-600">
+                  {isExpanded ? 'Hide summary ↑' : 'View summary ↓'}
+                </p>
+
+                {completed && isExpanded && (
                   <div className="mt-5 border-t border-gray-100 pt-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
