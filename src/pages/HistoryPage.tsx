@@ -237,12 +237,7 @@ export default function HistoryPage() {
                 key={session.id}
                 className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md"
               >
-                <button
-                  type="button"
-                  onClick={() => toggleSummary(session.id)}
-                  aria-expanded={isExpanded}
-                  className="flex w-full cursor-pointer flex-col justify-between gap-3 text-left sm:flex-row sm:items-start focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 rounded-lg"
-                >
+               <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                   <div>
                     <h2 className="text-lg font-semibold">
                       {session.job_title || 'Interview session'}
@@ -264,7 +259,7 @@ export default function HistoryPage() {
                   >
                     {completed ? 'Completed' : 'In progress'}
                   </span>
-                </button>
+                </div>
 
                 <p className="mt-4 text-sm font-semibold text-blue-600">
                   {isExpanded ? 'Hide summary ↑' : 'View summary ↓'}
