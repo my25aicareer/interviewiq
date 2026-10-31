@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 
 type Session = {
@@ -234,19 +235,14 @@ export default function HistoryPage() {
             return (
               <div
                 key={session.id}
-                onClick={() => toggleSummary(session.id)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    toggleSummary(session.id);
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-                aria-expanded={isExpanded}
-                className="cursor-pointer rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md"
               >
-                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                <button
+                  type="button"
+                  onClick={() => toggleSummary(session.id)}
+                  aria-expanded={isExpanded}
+                  className="flex w-full cursor-pointer flex-col justify-between gap-3 text-left sm:flex-row sm:items-start focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 rounded-lg"
+                >
                   <div>
                     <h2 className="text-lg font-semibold">
                       {session.job_title || 'Interview session'}
@@ -268,7 +264,7 @@ export default function HistoryPage() {
                   >
                     {completed ? 'Completed' : 'In progress'}
                   </span>
-                </div>
+                </button>
 
                 <p className="mt-4 text-sm font-semibold text-blue-600">
                   {isExpanded ? 'Hide summary ↑' : 'View summary ↓'}
@@ -327,6 +323,13 @@ export default function HistoryPage() {
                         {session.improvementSummary}
                       </p>
                     )}
+
+                    <Link
+                      to={`/results/${session.id}`}
+                      className="mt-5 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                    >
+                      View Full Report →
+                    </Link>
                   </div>
                 )}
               </div>
