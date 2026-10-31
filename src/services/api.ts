@@ -88,31 +88,48 @@ export async function analyseProfile(input: {
   };
 }
 
+const pendingQuestionRequests = new Map<string, Promise<InterviewQuestion[]>>();
+
 export async function generateQuestions(input: {
   sessionId: string;
   jobTitle: string;
   jobDescription: string;
   resumeText: string;
 }): Promise<InterviewQuestion[]> {
-  const data = await invokeFunction({
-    operation: 'generate_questions',
-    session_id: input.sessionId,
-    job_title: input.jobTitle,
-    resume_text: input.resumeText,
-    job_description: input.jobDescription,
-  }) as GenerateQuestionsResponse;
+  const existingRequest = pendingQuestionRequests.get(input.sessionId);
 
-  const questions = data.questions ?? [];
+  if (existingRequest) {
+    return existingRequest;
+  }
 
-  return questions.map((question) => ({
-    id: question.id,
-    text: question.question_text,
-    category: question.category,
-    difficulty: question.difficulty,
-    evaluationCriteria: question.evaluation_criteria,
-  }));
+  const request = (async () => {
+    const data = await invokeFunction({
+      operation: 'generate_questions',
+      session_id: input.sessionId,
+      job_title: input.jobTitle,
+      resume_text: input.resumeText,
+      job_description: input.jobDescription,
+    }) as GenerateQuestionsResponse;
+
+    const questions = data.questions ?? [];
+
+    return questions.map((question) => ({
+      id: question.id,
+      text: question.question_text,
+      category: question.category,
+      difficulty: question.difficulty,
+      evaluationCriteria: question.evaluation_criteria,
+    }));
+  })();
+
+  pendingQuestionRequests.set(input.sessionId, request);
+
+  try {
+    return await request;
+  } finally {
+    pendingQuestionRequests.delete(input.sessionId);
+  }
 }
-
 const SHORT_ANSWER_WORD_COUNT = 8;
 
 function isBlank(value: string): boolean {
