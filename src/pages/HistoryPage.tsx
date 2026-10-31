@@ -261,9 +261,14 @@ export default function HistoryPage() {
                   </span>
                 </div>
 
-                <p className="mt-4 text-sm font-semibold text-blue-600">
-                  {isExpanded ? 'Hide summary ↑' : 'View summary ↓'}
-                </p>
+               <button
+  type="button"
+  onClick={() => toggleSummary(session.id)}
+  aria-expanded={isExpanded}
+  className="mt-4 text-sm font-semibold text-blue-600 hover:text-blue-800 focus:outline-none focus:underline"
+>
+  {isExpanded ? 'Hide summary ↑' : 'View summary ↓'}
+</button>
 
                 {completed && isExpanded && (
                   <div className="mt-5 border-t border-gray-100 pt-4">
