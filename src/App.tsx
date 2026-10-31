@@ -9,6 +9,7 @@ import PreparePage from '@/pages/PreparePage';
 import ResultsPage from '@/pages/ResultsPage';
 import SignInPage from '@/pages/SignInPage';
 import SignUpPage from '@/pages/SignUpPage';
+import HistoryPage from '@/pages/HistoryPage';
 
 function App() { 
   return (
@@ -25,7 +26,7 @@ function App() {
               <Route path="/prepare" element={<PreparePage />} />
               <Route path="/interview" element={<InterviewPage />} />
               <Route path="/results" element={<ResultsPage />} />
-              <Route path="/history" element={<ComingSoonPage title="Session History" />} />
+              <Route path="/history" element={<HistoryPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
