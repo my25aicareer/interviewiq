@@ -8,11 +8,47 @@ type Session = {
   created_at: string;
 };
 
+type Answer = {
+  question_id: string;
+  relevance_score: number | null;
+  clarity_score: number | null;
+  structure_score: number | null;
+  job_alignment_score: number | null;
+  strengths: unknown;
+  improvements: unknown;
+};
+
 type HistoryItem = Session & {
   questionCount: number;
   answeredCount: number;
   averageScore: number | null;
+  strongestArea: string | null;
+  improvementArea: string | null;
+  strengthSummary: string | null;
+  improvementSummary: string | null;
 };
+
+function getFirstText(value: unknown): string | null {
+  if (typeof value === 'string') return value.trim() || null;
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const result = getFirstText(item);
+      if (result) return result;
+    }
+  }
+
+  if (value && typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+
+    for (const key of ['description', 'text', 'title', 'strength', 'improvement']) {
+      const result = getFirstText(obj[key]);
+      if (result) return result;
+    }
+  }
+
+  return null;
+}
 
 export default function HistoryPage() {
   const [sessions, setSessions] = useState<HistoryItem[]>([]);
@@ -55,24 +91,18 @@ export default function HistoryPage() {
         const questions = questionData ?? [];
         const questionIds = questions.map((q) => q.id);
 
-        let answers: {
-          question_id: string;
-          relevance_score: number | null;
-          clarity_score: number | null;
-          structure_score: number | null;
-          job_alignment_score: number | null;
-        }[] = [];
+        let answers: Answer[] = [];
 
         if (questionIds.length > 0) {
           const { data: answerData, error: answerError } = await supabase
             .from('interview_answers')
             .select(
-              'question_id, relevance_score, clarity_score, structure_score, job_alignment_score',
+              'question_id, relevance_score, clarity_score, structure_score, job_alignment_score, strengths, improvements',
             )
             .in('question_id', questionIds);
 
           if (answerError) throw answerError;
-          answers = answerData ?? [];
+          answers = (answerData ?? []) as Answer[];
         }
 
         const items: HistoryItem[] = allSessions.map((session) => {
@@ -80,21 +110,25 @@ export default function HistoryPage() {
             (q) => q.session_id === session.id,
           );
 
-          const sessionQuestionIds = new Set(
+          const questionIdSet = new Set(
             sessionQuestions.map((q) => q.id),
           );
 
           const sessionAnswers = answers.filter((a) =>
-            sessionQuestionIds.has(a.question_id),
+            questionIdSet.has(a.question_id),
           );
 
+          const scoreFields = [
+            { label: 'Relevance', key: 'relevance_score' },
+            { label: 'Clarity', key: 'clarity_score' },
+            { label: 'Structure', key: 'structure_score' },
+            { label: 'Job alignment', key: 'job_alignment_score' },
+          ] as const;
+
           const scores = sessionAnswers.flatMap((answer) =>
-            [
-              answer.relevance_score,
-              answer.clarity_score,
-              answer.structure_score,
-              answer.job_alignment_score,
-            ].filter((score): score is number => score !== null),
+            scoreFields
+              .map((field) => answer[field.key])
+              .filter((score): score is number => score !== null),
           );
 
           const averageScore =
@@ -102,11 +136,43 @@ export default function HistoryPage() {
               ? scores.reduce((sum, score) => sum + score, 0) / scores.length
               : null;
 
+          const areaAverages = scoreFields.map((field) => {
+            const values = sessionAnswers
+              .map((answer) => answer[field.key])
+              .filter((score): score is number => score !== null);
+
+            return {
+              label: field.label,
+              average: values.length
+                ? values.reduce((sum, score) => sum + score, 0) / values.length
+                : null,
+            };
+          }).filter((area) => area.average !== null);
+
+          areaAverages.sort((a, b) => b.average! - a.average!);
+
+          const strengthSummary =
+            sessionAnswers
+              .map((answer) => getFirstText(answer.strengths))
+              .find(Boolean) ?? null;
+
+          const improvementSummary =
+            sessionAnswers
+              .map((answer) => getFirstText(answer.improvements))
+              .find(Boolean) ?? null;
+
           return {
             ...session,
             questionCount: sessionQuestions.length,
             answeredCount: sessionAnswers.length,
             averageScore,
+            strongestArea: areaAverages[0]?.label ?? null,
+            improvementArea:
+              areaAverages.length > 1
+                ? areaAverages[areaAverages.length - 1].label
+                : null,
+            strengthSummary,
+            improvementSummary,
           };
         });
 
@@ -129,7 +195,7 @@ export default function HistoryPage() {
     <div className="mx-auto max-w-5xl px-6 py-10">
       <h1 className="mb-2 text-3xl font-bold">Interview History</h1>
       <p className="mb-8 text-gray-500">
-        Review your previous interview practice sessions.
+        Track your progress across previous interview sessions.
       </p>
 
       {loading && <p className="text-gray-500">Loading your interviews...</p>}
@@ -148,7 +214,7 @@ export default function HistoryPage() {
       )}
 
       {!loading && !error && sessions.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {sessions.map((session) => {
             const completed =
               session.questionCount > 0 &&
@@ -157,37 +223,87 @@ export default function HistoryPage() {
             return (
               <div
                 key={session.id}
-                className="flex flex-col justify-between gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center"
+                className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
               >
-                <div>
-                  <h2 className="text-lg font-semibold">
-                    {session.job_title || 'Interview session'}
-                  </h2>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {new Date(session.created_at).toLocaleString()}
-                  </p>
-                  <p className="mt-2 text-sm text-gray-500">
-                    {session.answeredCount} of {session.questionCount} questions answered
-                  </p>
-                </div>
+                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                  <div>
+                    <h2 className="text-lg font-semibold">
+                      {session.job_title || 'Interview session'}
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {new Date(session.created_at).toLocaleString()}
+                    </p>
+                    <p className="mt-2 text-sm text-gray-500">
+                      {session.answeredCount} of {session.questionCount} questions answered
+                    </p>
+                  </div>
 
-                <div className="flex flex-col gap-2 sm:items-end">
                   <span
-                    className={
+                    className={`w-fit rounded-full px-3 py-1 text-sm font-semibold ${
                       completed
-                        ? 'text-sm font-semibold text-green-700'
-                        : 'text-sm font-semibold text-amber-700'
-                    }
+                        ? 'bg-green-50 text-green-700'
+                        : 'bg-amber-50 text-amber-700'
+                    }`}
                   >
                     {completed ? 'Completed' : 'In progress'}
                   </span>
-
-                  {session.averageScore !== null && (
-                    <span className="text-sm font-semibold text-gray-700">
-                      Average score: {session.averageScore.toFixed(1)}
-                    </span>
-                  )}
                 </div>
+
+                {completed && (
+                  <div className="mt-5 border-t border-gray-100 pt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Average score</p>
+                        <p className="mt-1 text-2xl font-bold">
+                          {session.averageScore !== null
+                            ? `${session.averageScore.toFixed(1)}/5`
+                            : 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Questions completed</p>
+                        <p className="mt-1 text-2xl font-bold">
+                          {session.answeredCount}/{session.questionCount}
+                        </p>
+                      </div>
+                    </div>
+
+                    {(session.strongestArea || session.improvementArea) && (
+                      <div className="mt-4 space-y-2 text-sm">
+                        {session.strongestArea && (
+                          <p>
+                            <span className="font-semibold text-green-700">
+                              Strongest area:
+                            </span>{' '}
+                            {session.strongestArea}
+                          </p>
+                        )}
+                        {session.improvementArea && (
+                          <p>
+                            <span className="font-semibold text-amber-700">
+                              Focus area:
+                            </span>{' '}
+                            {session.improvementArea}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {session.strengthSummary && (
+                      <p className="mt-4 text-sm text-gray-600">
+                        <span className="font-semibold">Strength:</span>{' '}
+                        {session.strengthSummary}
+                      </p>
+                    )}
+
+                    {session.improvementSummary && (
+                      <p className="mt-2 text-sm text-gray-600">
+                        <span className="font-semibold">To improve:</span>{' '}
+                        {session.improvementSummary}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
