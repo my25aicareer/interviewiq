@@ -1,8 +1,10 @@
-import { Menu, X } from 'lucide-react';
+import { LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import Logo from '@/components/Logo';
 import StreakBadge from '@/components/StreakBadge';
+import { buttonStyles } from '@/components/buttonStyles';
+import { useAuth } from '@/hooks/useAuth';
 
 const navLinks = [
   { to: '/', label: 'Home', end: true },
@@ -20,9 +22,15 @@ function linkClass(isActive: boolean, isMobile: boolean) {
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
   function closeMenu() {
     setIsMenuOpen(false);
+  }
+
+  function handleSignOut() {
+    closeMenu();
+    void signOut();
   }
 
   return (
@@ -45,6 +53,16 @@ export default function Navbar() {
 
         <div className="flex items-center gap-2">
           <StreakBadge />
+          {user ? (
+            <button type="button" onClick={handleSignOut} className={`hidden md:inline-flex ${buttonStyles({ variant: 'ghost', size: 'md' })}`}>
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+              Sign out
+            </button>
+          ) : (
+            <Link to="/login" className={`hidden md:inline-flex ${buttonStyles({ variant: 'secondary', size: 'md' })}`}>
+              Sign in
+            </Link>
+          )}
           <button
             type="button"
             onClick={() => setIsMenuOpen((open) => !open)}
@@ -72,6 +90,15 @@ export default function Navbar() {
                 {link.label}
               </NavLink>
             ))}
+            {user ? (
+              <button type="button" onClick={handleSignOut} className={linkClass(false, true)}>
+                Sign out
+              </button>
+            ) : (
+              <NavLink to="/login" onClick={closeMenu} className={({ isActive }) => linkClass(isActive, true)}>
+                Sign in
+              </NavLink>
+            )}
           </div>
         </nav>
       )}
