@@ -26,6 +26,7 @@ type SavedQuestion = {
 
 type SavedAnswer = {
   question_id: string;
+  created_at: string;
   answer_text: string;
   relevance_score: number | null;
   clarity_score: number | null;
@@ -383,11 +384,22 @@ export default function ResultsPage() {
         if (questionIds.length > 0) {
           const { data: answerData, error: answerError } = await supabase
             .from('interview_answers')
-            .select('question_id, answer_text, relevance_score, clarity_score, structure_score, job_alignment_score, strengths, improvements, improved_answer')
+            .select('question_id, created_at, answer_text, relevance_score, clarity_score, structure_score, job_alignment_score, strengths, improvements, improved_answer')
             .in('question_id', questionIds);
 
           if (answerError) throw answerError;
-          answers = (answerData ?? []) as SavedAnswer[];
+
+          const latestByQuestion = new Map<string, SavedAnswer>();
+          for (const answer of (answerData ?? []) as SavedAnswer[]) {
+            const current = latestByQuestion.get(answer.question_id);
+            if (
+              !current ||
+              Date.parse(answer.created_at) > Date.parse(current.created_at)
+            ) {
+              latestByQuestion.set(answer.question_id, answer);
+            }
+          }
+          answers = [...latestByQuestion.values()];
         }
 
         if (!cancelled) {
