@@ -26,6 +26,7 @@ function App() {
               <Route path="/prepare" element={<PreparePage />} />
               <Route path="/interview" element={<InterviewPage />} />
               <Route path="/results" element={<ResultsPage />} />
+              <Route path="/results/:sessionId" element={<ResultsPage />} />
               <Route path="/history" element={<HistoryPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
