@@ -44,7 +44,7 @@ function InsufficientView({ onRetry }: { onRetry: () => void }) {
         <AlertTriangle className="h-8 w-8 text-amber-600" aria-hidden="true" />
         <h2 className="text-xl font-semibold text-navy">N/A (Not assessable)</h2>
         <p className="max-w-md text-sm leading-normal text-slate-600">
-          Your response couldn't be evaluated because it didn't contain meaningful content.
+          Your response couldn't be evaluated because it didn't contain meaningful content. Try Again.
         </p>
         <Button variant="secondary" onClick={onRetry} className="mt-2">
           <RotateCcw className="h-4 w-4" aria-hidden="true" />

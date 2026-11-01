@@ -5,6 +5,7 @@ import { Link, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import Badge from '@/components/Badge';
 import type { BadgeTone } from '@/components/Badge';
+import { selectLatestUsableAnswers } from '@/utils/answerValidity';
 import Card from '@/components/Card';
 import ScoreChip from '@/components/ScoreChip';
 import { buttonStyles } from '@/components/buttonStyles';
@@ -389,17 +390,7 @@ export default function ResultsPage() {
 
           if (answerError) throw answerError;
 
-          const latestByQuestion = new Map<string, SavedAnswer>();
-          for (const answer of (answerData ?? []) as SavedAnswer[]) {
-            const current = latestByQuestion.get(answer.question_id);
-            if (
-              !current ||
-              Date.parse(answer.created_at) > Date.parse(current.created_at)
-            ) {
-              latestByQuestion.set(answer.question_id, answer);
-            }
-          }
-          answers = [...latestByQuestion.values()];
+          answers = selectLatestUsableAnswers((answerData ?? []) as SavedAnswer[]);
         }
 
         if (!cancelled) {

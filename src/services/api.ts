@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { hasMeaningfulContent, isUnevaluableAnswer } from '@/utils/answerValidity';
 import type {
   AnswerFeedback,
   AnswerScores,
@@ -132,24 +133,21 @@ export async function generateQuestions(input: {
 }
 const SHORT_ANSWER_WORD_COUNT = 8;
 
-function isBlank(value: string): boolean {
-  return value.trim() === '';
-}
-
 function classifyStatus(
   answerText: string,
   scores: AnswerScores,
 ): AnswerStatus {
+  if (isUnevaluableAnswer(answerText, scores.relevance)) return 'insufficient';
+
   const wordCount = answerText.trim().split(/\s+/).length;
   const isShort = wordCount < SHORT_ANSWER_WORD_COUNT;
 
-  if (isShort && scores.relevance <= 1) return 'insufficient';
   if (isShort && scores.relevance <= 2) return 'limited';
   return 'assessable';
 }
 
 export async function evaluateAnswer(input: EvaluateAnswerInput): Promise<AnswerFeedback> {
-  if (isBlank(input.answer)) {
+  if (!hasMeaningfulContent(input.answer)) {
     return {
       status: 'insufficient',
       scores: { relevance: 0, clarity: 0, structure: 0, jobAlignment: 0 },
