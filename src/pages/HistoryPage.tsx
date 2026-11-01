@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { selectLatestUsableAnswers } from '@/utils/answerValidity';
 
 type Session = {
   id: string;
@@ -13,7 +12,6 @@ type Session = {
 type Answer = {
   question_id: string;
   created_at: string;
-  answer_text: string;
   relevance_score: number | null;
   clarity_score: number | null;
   structure_score: number | null;
@@ -110,12 +108,23 @@ export default function HistoryPage() {
           const { data: answerData, error: answerError } = await supabase
             .from('interview_answers')
             .select(
-              'question_id, created_at, answer_text, relevance_score, clarity_score, structure_score, job_alignment_score, strengths, improvements',
+              'question_id, created_at, relevance_score, clarity_score, structure_score, job_alignment_score, strengths, improvements',
             )
             .in('question_id', questionIds);
 
           if (answerError) throw answerError;
-          answers = selectLatestUsableAnswers((answerData ?? []) as Answer[]);
+
+          const latestByQuestion = new Map<string, Answer>();
+          for (const answer of (answerData ?? []) as Answer[]) {
+            const current = latestByQuestion.get(answer.question_id);
+            if (
+              !current ||
+              Date.parse(answer.created_at) > Date.parse(current.created_at)
+            ) {
+              latestByQuestion.set(answer.question_id, answer);
+            }
+          }
+          answers = [...latestByQuestion.values()];
         }
 
         const items: HistoryItem[] = allSessions.map((session) => {
