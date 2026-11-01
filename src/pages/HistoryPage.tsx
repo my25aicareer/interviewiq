@@ -128,6 +128,10 @@ export default function HistoryPage() {
             questionIdSet.has(a.question_id),
           );
 
+          const answeredQuestionIds = new Set(
+            sessionAnswers.map((a) => a.question_id),
+          );
+
           const scoreFields = [
             { label: 'Relevance', key: 'relevance_score' },
             { label: 'Clarity', key: 'clarity_score' },
@@ -174,7 +178,7 @@ export default function HistoryPage() {
           return {
             ...session,
             questionCount: sessionQuestions.length,
-            answeredCount: sessionAnswers.length,
+            answeredCount: answeredQuestionIds.size,
             averageScore,
             strongestArea: areaAverages[0]?.label ?? null,
             improvementArea:
